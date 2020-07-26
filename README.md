@@ -1,4 +1,4 @@
 # PyPassMan
-A super-secure, simple, and easy-to-use command-line Python password manager.
+The source code for the passman application. The AUR package is all compiled into binary. 
 
-Usage: `python passman.py`
+The actual functioning version can be found [here.](https://github.com/binex-dsk/passman-aur)
