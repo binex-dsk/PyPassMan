@@ -12,10 +12,7 @@ c = conn.cursor()
 homef = str(Path.home())
 iv = None
 def run():
-    try:
-        pdb = os.path.exists(f'{homef}/passman.pdb')
-    except:
-        pass
+    pdb = os.path.exists(f'{homef}/passman.pdb')
     if pdb:
         prd = getmpass()[0]
         c.executescript(prd.decode())
