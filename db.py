@@ -1,37 +1,46 @@
 # pylint: disable=unused-variable
-def exists(table, values, conn): # I could do this way better but this works
-    selection = table.select()
-    for i, _ in enumerate(values):
-        selection = selection.where(table.c[list(values.keys())[i]] == list(values.values())[i])
+import hashlib
+from pathlib import Path
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.backends import default_backend
+from tables import conn, c
+q = '"'
+def exists(table, vals):
+    ex = c.execute(f'SELECT * FROM {table} WHERE {" AND ".join([f"{t[0]}={q}{t[1]}{q}" for t in list(vals.items())])}').fetchone()
+    return bool(ex)
 
-    result = conn.execute(selection)
-    rowlen = 0
-    for _ in result:
-        rowlen += 1
-    return rowlen != 0
+def insert(table, vals):
+    c.execute(f'INSERT INTO {table} ({", ".join(list(vals.keys()))}) VALUES ({", ".join([f"{q}{x}{q}" for x in list(vals.values())])})')
+    conn.commit()
 
-def insert(table, values, conn):
-    try:
-        conn.execute(table.insert(), [
-            values
-        ])
-    except:
-        raise Exception('Table not found.')
+def delete(table, vals):
+    if not exists(table, vals):
+        raise Exception('Row not found.')
+    c.execute(f'DELETE FROM {table} WHERE {" AND ".join([f"{t[0]}={q}{t[1]}{q}" for t in list(vals.items())])}')
+    conn.commit()
 
-def delete(table, values, conn):
-    fetched = fetch(table, values, conn)
-    if not fetched:
-        raise Exception('Table not found.')
-
-    del_select = table.delete()
-    for i, _ in enumerate(values):
-        del_select = del_select.where(table.c[list(values.keys())[i]] == list(values.values())[i])
-    return conn.execute(del_select)
-
-def fetch(table, values, conn):
-    if not exists(table, values, conn):
+def fetch(table, vals):
+    if not exists(table, vals):
         return None
-    selection = table.select()
-    for i, _ in enumerate(values):
-        selection = selection.where(table.c[list(values.keys())[i]] == list(values.values())[i])
-    return conn.execute(selection)
+    ex = c.execute(f'SELECT * FROM {table} WHERE {" AND ".join([f"{t[0]}={q}{t[1]}{q}" for t in list(vals.items())])}')
+    return ex
+
+def encrypt(key, iv):
+    data = b""
+    for line in conn.iterdump():
+        data += f"{line}\n".encode()
+
+    padder = PKCS7(256).padder()
+    pkey = padder.update(key) + padder.finalize()
+    padder = PKCS7(1024).padder()
+    pdata = padder.update(data) + padder.finalize()
+
+    cipher = Cipher(algorithms.AES(pkey), modes.CBC(iv), backend=default_backend())
+    enc = cipher.encryptor()
+    ct = enc.update(pdata) + enc.finalize()
+    to_write = f"{iv.decode()}\n{hashlib.sha256(ct).hexdigest()}\n".encode()
+    to_write += ct
+    homef = str(Path.home())
+    pdb = open(f'{homef}/passman.pdb', 'wb+')
+    pdb.write(to_write)

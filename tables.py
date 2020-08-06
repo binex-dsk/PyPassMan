@@ -1,36 +1,51 @@
-try:
-    from sqlalchemy import Table, Column, String, BigInteger, MetaData, create_engine
-except:
-    print('Please install sqlalchemy with')
-    print('python3 -m pip install sqlalchemy')
-    exit()
+from sqlite3 import connect
+import hashlib, os, random, string, getpass
+from pathlib import Path
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.padding import PKCS7
+import db
 
-import subprocess
+#conn = connect('data.db')
+conn = connect(':memory:')
+c = conn.cursor()
+homef = str(Path.home())
+iv = None
+def run():
+    try:
+        pdb = os.path.exists(f'{homef}/passman.pdb')
+    except:
+        pass
+    if pdb:
+        prd = getmpass()[0]
+        c.executescript(prd.decode())
+    else:
+        iv = ''.join(random.choices(string.ascii_letters, k=16)).encode()
+        psw = input('Welcome to passman!\nTo start, please create a master password: ')
+        #cipher = Cipher(algorithms.AES(psw.encode()), modes.CBC(iv), backend=default_backend())
+        c.execute('CREATE TABLE data (name text, description DEFAULT "No description provided", password text)')
+        conn.commit()
+        db.encrypt(psw.encode(), iv)
+        print('Successfully set master password.')
 
-homef = subprocess.Popen('echo ~', shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE).stdout.readline().decode().strip('\n')
-engine = create_engine(f'sqlite:///{homef}/passman.db')
-meta = MetaData()
-conn = engine.connect()
-data = Table(
-    'data', meta,
-    Column('name', String, unique=True),
-    Column('description', String),
-    Column('password', String, unique=True),
-    Column('indices', String),
-    Column('iters', String),
-    Column('key', BigInteger)
-)
-master_password = Table(
-    'master_password', meta,
-    Column('password', String, unique=True)
-)
-charset = Table(
-    'charset', meta,
-    Column('set', String),
-    Column('key1', BigInteger),
-    Column('key2', BigInteger),
-    Column('key3', BigInteger),
-    Column('key4', BigInteger)
-)
+def getmpass(txt=""):
+    pdb = open(f'{homef}/passman.pdb', 'rb')
+    iv = pdb.readline().strip(b'\n').replace(b"b'", b'').replace(b"'", b'')
+    hash = pdb.readline().strip(b'\n').replace(b"b'", b'').replace(b"'", b'')
+    r = pdb.read()
+    while True:
+        pw = getpass.getpass(f'Please enter your master password{txt}: ')
 
-meta.create_all(engine)
+        padder = PKCS7(256).padder()
+        ppw = padder.update(pw.encode()) + padder.finalize()
+
+        cipher = Cipher(algorithms.AES(ppw), modes.CBC(iv), backend=default_backend())
+        dec = cipher.decryptor()
+        rd = dec.update(r) + dec.finalize()
+        padder = PKCS7(1024).unpadder()
+        prd = padder.update(rd) + padder.finalize()
+
+        if hash == hashlib.sha256(r).hexdigest().encode():
+            break
+        print('Wrong password, try again.')
+    return prd, pw, iv
