@@ -6,7 +6,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.padding import PKCS7
 import db
 
-#conn = connect('data.db')
 conn = connect(':memory:')
 c = conn.cursor()
 homef = str(Path.home())
