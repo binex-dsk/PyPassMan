@@ -1,5 +1,5 @@
 # pylint: disable=unused-variable
-import hashlib
+import hashlib, base64
 from pathlib import Path
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
@@ -39,7 +39,7 @@ def encrypt(key, iv):
     cipher = Cipher(algorithms.AES(pkey), modes.CBC(iv), backend=default_backend())
     enc = cipher.encryptor()
     ct = enc.update(pdata) + enc.finalize()
-    to_write = f"{iv.decode()}\n{hashlib.sha256(ct).hexdigest()}\n".encode()
+    to_write = f"{base64.b64encode(iv).decode()}\n{hashlib.sha256(ct).hexdigest()}\n".encode()
     to_write += ct
     homef = str(Path.home())
     pdb = open(f'{homef}/passman.pdb', 'wb+')
