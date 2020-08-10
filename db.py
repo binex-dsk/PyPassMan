@@ -26,6 +26,23 @@ def fetch(table, vals):
     ex = c.execute(f'SELECT * FROM {table} WHERE {" AND ".join([f"{t[0]}={q}{t[1]}{q}" for t in list(vals.items())])}')
     return ex
 
+def update(table, vals, newvals):
+    if not exists(table, vals):
+        raise Exception('Row not found.')
+    vs = list(vals.items())
+    nvs = list(newvals.items())
+    exec_str = f"UPDATE {table} SET "
+    nvlist = []
+    vlist = []
+    for nv in nvs:
+        nvlist.append(f'{nv[0]}="{nv[1]}"')
+    exec_str += f"{', '.join(nvlist)} WHERE "
+    for v in vs:
+        vlist.append(f'{v[0]} = "{v[1]}"')
+    exec_str += ', '.join(vlist)
+    c.execute(exec_str)
+    conn.commit()
+
 def encrypt(key, iv):
     data = b""
     for line in conn.iterdump():

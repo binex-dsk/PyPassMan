@@ -12,4 +12,3 @@ python3 must be installed on your system, as well as `cryptography` (python3 -m 
 Basically all of the code: me
 
 Helping me significantly improve this project: Lenny McLennington#3125
-

@@ -13,7 +13,7 @@ iv = None
 def run():
     pdb = os.path.exists(f'{homef}/passman.pdb')
     if pdb:
-        prd = getmpass()[0]
+        prd = getmpass(txt=' to login')[0]
         c.executescript(prd.decode())
     else:
         iv = os.urandom(16)
@@ -23,7 +23,7 @@ def run():
         db.encrypt(psw.encode(), iv)
         print('Successfully set master password.\nIt is HIGHLY important that you keep this in a safe place. Without the password, there is literally no way to access your data!')
 
-def getmpass(txt=""):
+def getmpass(txt=" to confirm this"):
     pdb = open(f'{homef}/passman.pdb', 'rb')
     iv = base64.b64decode(pdb.readline().strip(b'\n'))
     hash = pdb.readline().strip(b'\n')
