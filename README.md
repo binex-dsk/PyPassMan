@@ -1,3 +1,6 @@
+# WARNING
+Development for PyPassMan has stopped. Please check out the new, improved version [here](https://github.com/binex-dsk/passmanpp).
+
 # PyPassMan
 The source code for the passman application.
 
